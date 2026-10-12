@@ -6,7 +6,6 @@ from pathlib import Path
 PORTABLE_GIT = r"C:\Users\ishan\.portable_git\cmd\git.exe"
 REMOTE_REPO_URL = "https://github.com/Ishan8009/monochrome.git"
 
-# Explicitly setting working-directory to desktop-app-2.0.17
 BUILD_YML_CONTENT = """name: Build Desktop App
 
 on:
@@ -23,6 +22,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,7 +47,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Monochrome-Desktop-Installer
-          path: desktop-app-2.0.17/src-tauri/target/release/bundle/
+          path: src-tauri/target/release/bundle/
 """
 
 DOWNLOAD_UTILS_CONTENT = """import { save, open } from '@tauri-apps/plugin-dialog';
@@ -88,7 +89,7 @@ def run_git(args, allow_failure=False):
     return result
 
 def main():
-    print("=== Updating Workflow with Strict Working Directory & Path Spec ===")
+    print("=== Fixing Upload Path & Git Checkout for Subdirectory Build ===")
 
     repo_root = Path(r"D:\Entertainment\Monochrome setup").resolve()
     os.chdir(repo_root)
@@ -118,14 +119,14 @@ def main():
     run_git(["remote", "add", "origin", REMOTE_REPO_URL])
 
     run_git(["add", "."])
-    run_git(["commit", "-m", "Set strict working-directory to desktop-app-2.0.17"], allow_failure=True)
+    run_git(["commit", "-m", "Fix working-directory artifact path and enable fetch-depth: 0"], allow_failure=True)
     run_git(["branch", "-M", "main"])
 
     print("Pushing updated workflow to GitHub...")
     push_res = run_git(["push", "-u", "origin", "main", "--force"])
 
     if push_res.returncode == 0:
-        print("\n🎉 Pushed successfully! Go to GitHub Actions to monitor Run #6.")
+        print("\n🎉 Pushed successfully! Check GitHub Actions Run #7.")
     else:
         print("\n❌ Push failed.")
 
