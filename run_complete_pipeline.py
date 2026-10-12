@@ -16,14 +16,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: desktop-app-2.0.17
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -33,13 +28,20 @@ jobs:
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Sync Dependencies & Fix Peer Issues
+      - name: Install Project Dependencies
         run: |
-          npm install --save-exact @tauri-apps/api@~2.11.0 @tauri-apps/plugin-process@~2.3.0 @tauri-apps/plugin-updater@~2.10.0 @tauri-apps/plugin-opener@~2.5.0 @tauri-apps/plugin-dialog@~2.2.0 --legacy-peer-deps
+          if (Test-Path "desktop-app-2.0.17/package.json") {
+            cd desktop-app-2.0.17
+          }
           npm install --legacy-peer-deps
 
       - name: Build Tauri Desktop Installer
-        run: npx tauri build
+        run: |
+          if (Test-Path "desktop-app-2.0.17/package.json") {
+            cd desktop-app-2.0.17
+          }
+          npx tauri build --no-bundle
+          npx tauri build
         continue-on-error: true
 
       - name: Upload Installer Artifacts
@@ -47,7 +49,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Monochrome-Desktop-Installer
-          path: src-tauri/target/release/bundle/
+          path: |
+            **/target/release/bundle/msi/*.msi
+            **/target/release/bundle/nsis/*.exe
+            **/target/release/bundle/
 """
 
 DOWNLOAD_UTILS_CONTENT = """import { save, open } from '@tauri-apps/plugin-dialog';
@@ -89,7 +94,7 @@ def run_git(args, allow_failure=False):
     return result
 
 def main():
-    print("=== Fixing Upload Path & Git Checkout for Subdirectory Build ===")
+    print("=== Updating Build Steps & Wildcard Artifact Paths ===")
 
     repo_root = Path(r"D:\Entertainment\Monochrome setup").resolve()
     os.chdir(repo_root)
@@ -98,17 +103,19 @@ def main():
         print(f"❌ Portable Git binary not found at: {PORTABLE_GIT}")
         sys.exit(1)
 
-    # Write root workflow
+    # 1. Update .github/workflows/build.yml
     workflow_dir = repo_root / ".github" / "workflows"
     workflow_dir.mkdir(parents=True, exist_ok=True)
     (workflow_dir / "build.yml").write_text(BUILD_YML_CONTENT, encoding="utf-8")
+    print(f" ✓ Updated {workflow_dir / 'build.yml'}")
 
-    # Update download-utils.ts
+    # 2. Update js/download-utils.ts
     js_dir = repo_root / "desktop-app-2.0.17" / "js"
     js_dir.mkdir(parents=True, exist_ok=True)
     (js_dir / "download-utils.ts").write_text(DOWNLOAD_UTILS_CONTENT, encoding="utf-8")
+    print(f" ✓ Updated {js_dir / 'download-utils.ts'}")
 
-    # Git operations
+    # 3. Git Operations
     repo_check = run_git(["rev-parse", "--is-inside-work-tree"], allow_failure=True)
     if repo_check.returncode != 0:
         run_git(["init"])
@@ -119,14 +126,14 @@ def main():
     run_git(["remote", "add", "origin", REMOTE_REPO_URL])
 
     run_git(["add", "."])
-    run_git(["commit", "-m", "Fix working-directory artifact path and enable fetch-depth: 0"], allow_failure=True)
+    run_git(["commit", "-m", "Fix npm install location and add wildcard artifact search"], allow_failure=True)
     run_git(["branch", "-M", "main"])
 
-    print("Pushing updated workflow to GitHub...")
+    print("\nPushing updated workflow to GitHub...")
     push_res = run_git(["push", "-u", "origin", "main", "--force"])
 
     if push_res.returncode == 0:
-        print("\n🎉 Pushed successfully! Check GitHub Actions Run #7.")
+        print("\n🎉 Pushed successfully! Go to GitHub Actions to monitor Run #8.")
     else:
         print("\n❌ Push failed.")
 
