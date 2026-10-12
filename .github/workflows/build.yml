@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-app-2.0.17
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -20,28 +23,15 @@ jobs:
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Project Dependencies
-        run: |
-          if (Test-Path "desktop-app-2.0.17/package.json") {
-            cd desktop-app-2.0.17
-          }
-          npm install --legacy-peer-deps
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
 
-      - name: Build Tauri Desktop Installer
-        run: |
-          if (Test-Path "desktop-app-2.0.17/package.json") {
-            cd desktop-app-2.0.17
-          }
-          npx tauri build --no-bundle
-          npx tauri build
-        continue-on-error: true
+      - name: Build Tauri Desktop Application
+        run: npx tauri build
 
       - name: Upload Installer Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Monochrome-Desktop-Installer
-          path: |
-            **/target/release/bundle/msi/*.msi
-            **/target/release/bundle/nsis/*.exe
-            **/target/release/bundle/
+          path: desktop-app-2.0.17/src-tauri/target/release/bundle/
