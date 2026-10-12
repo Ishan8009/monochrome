@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-app-2.0.17
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -22,14 +25,11 @@ jobs:
 
       - name: Install Project Dependencies
         run: |
-          cd desktop-app-2.0.17
           npm install --legacy-peer-deps
           npm install @tauri-apps/cli@latest --legacy-peer-deps
 
       - name: Build Tauri Desktop Application
-        run: |
-          cd desktop-app-2.0.17
-          npx tauri build --no-bundle
+        run: npx tauri build --no-bundle
         continue-on-error: true
 
       - name: Upload Installer Artifacts
@@ -38,5 +38,6 @@ jobs:
         with:
           name: Monochrome-Desktop-Installer
           path: |
-            desktop-app-2.0.17/src-tauri/target/release/
-            desktop-app-2.0.17/src-tauri/target/release/bundle/
+            **/target/release/*.exe
+            **/target/release/bundle/
+            **/target/release/

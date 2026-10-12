@@ -17,6 +17,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-app-2.0.17
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -31,14 +34,11 @@ jobs:
 
       - name: Install Project Dependencies
         run: |
-          cd desktop-app-2.0.17
           npm install --legacy-peer-deps
           npm install @tauri-apps/cli@latest --legacy-peer-deps
 
       - name: Build Tauri Desktop Application
-        run: |
-          cd desktop-app-2.0.17
-          npx tauri build --no-bundle
+        run: npx tauri build --no-bundle
         continue-on-error: true
 
       - name: Upload Installer Artifacts
@@ -47,8 +47,9 @@ jobs:
         with:
           name: Monochrome-Desktop-Installer
           path: |
-            desktop-app-2.0.17/src-tauri/target/release/
-            desktop-app-2.0.17/src-tauri/target/release/bundle/
+            **/target/release/*.exe
+            **/target/release/bundle/
+            **/target/release/
 """
 
 def run_git(args, allow_failure=False):
@@ -60,7 +61,7 @@ def run_git(args, allow_failure=False):
     return result
 
 def main():
-    print("=== Applying Comprehensive Build Fix ===")
+    print("=== Fixing Working Directory and Artifact Upload Path ===")
 
     repo_root = Path(r"D:\Entertainment\Monochrome setup").resolve()
     os.chdir(repo_root)
@@ -88,7 +89,7 @@ def main():
     workflow_dir = repo_root / ".github" / "workflows"
     workflow_dir.mkdir(parents=True, exist_ok=True)
     (workflow_dir / "build.yml").write_text(BUILD_YML_CONTENT, encoding="utf-8")
-    print(" ✓ Updated .github/workflows/build.yml")
+    print(" ✓ Updated .github/workflows/build.yml with job-level working-directory")
 
     # 3. Git Operations
     repo_check = run_git(["rev-parse", "--is-inside-work-tree"], allow_failure=True)
@@ -101,14 +102,14 @@ def main():
     run_git(["remote", "add", "origin", REMOTE_REPO_URL])
 
     run_git(["add", "."])
-    run_git(["commit", "-m", "Apply comprehensive workflow fix and clear updater pubkey"], allow_failure=True)
+    run_git(["commit", "-m", "Fix job working-directory and glob artifact paths"], allow_failure=True)
     run_git(["branch", "-M", "main"])
 
-    print("\nPushing updated files to GitHub...")
+    print("\nPushing updated workflow to GitHub...")
     push_res = run_git(["push", "-u", "origin", "main", "--force"])
 
     if push_res.returncode == 0:
-        print("\n🎉 Pushed successfully! Monitor the run at https://github.com/Ishan8009/monochrome/actions")
+        print("\n🎉 Pushed successfully! Check the run at https://github.com/Ishan8009/monochrome/actions")
     else:
         print("\n❌ Push failed.")
 
